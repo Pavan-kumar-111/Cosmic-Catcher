@@ -1,0 +1,198 @@
+:root {
+    --bg-color: #050b14;
+    --accent-color: #00f3ff;
+    --danger-color: #ff3333;
+    --text-color: #ffffff;
+    --ui-font: 'Outfit', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-color);
+    font-family: var(--ui-font);
+    color: var(--text-color);
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #1a2a40 0%, #050b14 100%);
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Let clicks pass through to canvas where needed */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Make UI elements clickable again */
+button, .screen {
+    pointer-events: auto;
+}
+
+/* HUD Top */
+#hud-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    width: 100%;
+    z-index: 10;
+}
+
+#score-display {
+    font-size: 3rem;
+    font-weight: 900;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    transition: all 0.2s ease;
+}
+
+.icon-btn:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Screens (Start / Game Over) */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(5, 11, 20, 0.85);
+    backdrop-filter: blur(3px);
+    transition: opacity 0.3s ease;
+    z-index: 20;
+}
+
+.screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.title {
+    font-size: 4rem;
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 2rem;
+    background: linear-gradient(to bottom, #fff, #aaa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.3));
+}
+
+.instruction {
+    font-size: 1.2rem;
+    color: #ccc;
+    margin-bottom: 0.5rem;
+}
+
+.glow-text {
+    color: var(--accent-color);
+    text-shadow: 0 0 8px var(--accent-color);
+}
+
+.danger-text {
+    color: var(--danger-color);
+    text-shadow: 0 0 8px var(--danger-color);
+}
+
+.tap-zone {
+    margin-top: 3rem;
+    padding: 1rem 2rem;
+}
+
+.pulse {
+    font-size: 1.5rem;
+    font-weight: 700;
+    animation: pulse-anim 1.5s infinite;
+}
+
+@keyframes pulse-anim {
+    0% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 0.5; transform: scale(1); }
+}
+
+.message-box {
+    text-align: center;
+}
+
+.score-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2rem;
+    border-radius: 20px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 2rem;
+}
+
+.big-number {
+    font-size: 5rem;
+    font-weight: 900;
+    color: var(--accent-color);
+}
+
+.action-btn {
+    background: var(--accent-color);
+    color: #000;
+    font-family: var(--ui-font);
+    font-weight: 900;
+    font-size: 1.2rem;
+    padding: 1rem 3rem;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+    transition: transform 0.2s;
+    text-transform: uppercase;
+}
+
+.action-btn:active {
+    transform: scale(0.95);
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+    .title { font-size: 3rem; }
+    #score-display { font-size: 2.5rem; }
+}
