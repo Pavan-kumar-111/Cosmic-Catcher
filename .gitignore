@@ -1,0 +1,24 @@
+# Node
+node_modules/
+
+# Capacitor
+android/
+ios/
+
+# Build outputs
+dist/
+build/
+
+# Environment
+.env
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

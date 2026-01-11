@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -10,18 +11,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
     <!-- Game Container -->
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
-        
+
         <!-- UI Overlay -->
         <div id="ui-layer">
-            
+
             <!-- Top HUD -->
             <div id="hud-top">
                 <div class="hud-group">
+                    <button id="btn-home" class="icon-btn" aria-label="Go Home">🏠</button>
                     <button id="btn-sound" class="icon-btn" aria-label="Toggle Sound">🔊</button>
                     <button id="btn-vibe" class="icon-btn" aria-label="Toggle Vibration">📳</button>
                 </div>
@@ -33,11 +36,15 @@
 
             <!-- Start Screen -->
             <div id="screen-start" class="screen active">
+                <img src="logo.png" alt="Cosmic Catcher Logo" class="game-logo">
                 <h1 class="title">COSMIC<br>CATCHER</h1>
                 <p class="instruction">Drag to catch <span class="glow-text">Objects</span></p>
                 <p class="instruction">Avoid <span class="danger-text">Asteroids</span></p>
                 <div class="tap-zone">
                     <span class="pulse">TAP TO START</span>
+                </div>
+                <div class="highscore-display" style="margin-top: 2rem; color: rgba(255,255,255,0.6);">
+                    HIGH SCORE: <span id="start-highscore" style="color: #fff; font-weight: bold;">0</span>
                 </div>
             </div>
 
@@ -47,8 +54,15 @@
                 <div class="score-card">
                     <p class="label">FINAL SCORE</p>
                     <p id="final-score" class="big-number">0</p>
+                    <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                        <p class="label" style="font-size: 0.9rem; opacity: 0.8;">HIGH SCORE</p>
+                        <p id="gameover-highscore" class="medium-number">0</p>
+                    </div>
                 </div>
-                <button id="btn-restart" class="action-btn">TAP TO RESTART</button>
+                <div class="button-group">
+                    <button id="btn-restart" class="action-btn">RESTART</button>
+                    <button id="btn-home-over" class="action-btn secondary">HOME</button>
+                </div>
             </div>
 
         </div>
@@ -56,4 +70,5 @@
 
     <script src="game.js"></script>
 </body>
+
 </html>

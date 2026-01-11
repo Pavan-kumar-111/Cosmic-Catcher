@@ -42,7 +42,32 @@ const CONFIG = {
 const STATE = {
     IDLE: 'IDLE',
     PLAYING: 'PLAYING',
-    GAMEOVER: 'GAMEOVER'
+    GAMEOVER: 'GAMEOVER',
+    PAUSED: 'PAUSED'
+};
+
+// --- ADVERTISEMENT MANAGER ---
+const AdManager = {
+    gamesPlayed: 0,
+    interstitialFrequency: 3, // Show ad every 3 games
+
+    // Hooks for Capacitor/AdMob Plugin
+    // Replace these with actual plugin calls
+    onReady: function () { console.log("AdManager: Init"); },
+    loadInterstitial: function () { console.log("AdManager: Loading Interstitial..."); },
+    showInterstitial: function (onComplete) {
+        console.log("AdManager: Showing Interstitial...");
+        // Simulation of ad viewing time
+        setTimeout(onComplete, 1000);
+    },
+
+    checkTrigger: function () {
+        this.gamesPlayed++;
+        if (this.gamesPlayed % this.interstitialFrequency === 0) {
+            return true;
+        }
+        return false;
+    }
 };
 
 // --- OPTIMIZATION: OBJECT POOLING ---
@@ -73,6 +98,125 @@ const Pool = {
     reset: function () {
         this.objects.forEach(o => o.active = false);
         this.particles.forEach(p => p.active = false);
+    }
+};
+
+// --- OPTIMIZATION: SPRITE CACHING ---
+const SpriteCache = {
+    canvases: {},
+    init: function () {
+        // Pre-render all object types
+        try {
+            this.renderAsteroid();
+            CONFIG.colors.safe.forEach(typeData => {
+                this.renderSafeObject(typeData);
+            });
+            console.log("SpriteCache: Initialized successfully");
+        } catch (e) {
+            console.error("SpriteCache: Initialization Failed", e);
+        }
+    },
+
+    createCanvas: function (width, height) {
+        const c = document.createElement('canvas');
+        c.width = width;
+        c.height = height;
+        return c;
+    },
+
+    renderAsteroid: function () {
+        const size = 60;
+        const radius = 25;
+        const ctx = this.createCanvas(size, size).getContext('2d');
+        const cx = size / 2, cy = size / 2;
+
+        ctx.fillStyle = CONFIG.colors.asteroid;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Craters
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.arc(cx - radius * 0.3, cy - radius * 0.3, radius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + radius * 0.4, cy + radius * 0.2, radius * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        this.canvases['Asteroid'] = ctx.canvas;
+    },
+
+    renderSafeObject: function (typeData) {
+        const size = 80;
+        const ctx = this.createCanvas(size, size).getContext('2d');
+        const cx = size / 2, cy = size / 2;
+        const r = typeData.radius;
+
+        const grad = ctx.createRadialGradient(cx, cy, r, cx, cy, r + 15);
+        grad.addColorStop(0, typeData.color);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+
+        if (typeData.type === 'Planet') {
+            ctx.fillStyle = typeData.color;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI, false); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, r * 1.6, r * 0.5, -0.3, 0, Math.PI * 2);
+            ctx.stroke();
+
+        } else if (typeData.type === 'Earth') {
+            ctx.fillStyle = typeData.color;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#43A047';
+            ctx.save();
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+            ctx.beginPath(); ctx.arc(cx - 5, cy - 5, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(cx, cy, r + 1, 0, Math.PI * 2); ctx.stroke();
+        } else if (typeData.type === 'Moon') {
+            ctx.fillStyle = typeData.color;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.beginPath(); ctx.arc(cx - 3, cy - 3, 3, 0, Math.PI * 2); ctx.fill();
+        } else if (typeData.type === 'Star') {
+            ctx.fillStyle = '#fffbe6';
+            ctx.beginPath(); ctx.arc(cx, cy, r * 0.6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = typeData.color;
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.beginPath();
+            for (let k = 0; k < 4; k++) {
+                ctx.rotate(Math.PI / 2);
+                ctx.moveTo(0, -r * 0.5);
+                ctx.quadraticCurveTo(2, 0, 0, r * 1.8);
+                ctx.quadraticCurveTo(-2, 0, 0, -r * 0.5);
+            }
+            ctx.fill();
+            ctx.restore();
+        } else if (typeData.type === 'Galaxy') {
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = typeData.color;
+            ctx.lineWidth = 2;
+            for (let k = 0; k < 2; k++) {
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, r, r * 0.4, k * Math.PI, 0, Math.PI * 1.25);
+                ctx.stroke();
+            }
+        }
+        this.canvases[typeData.type] = ctx.canvas;
     }
 };
 
@@ -154,8 +298,10 @@ let canvas, ctx;
 let width, height;
 let gameState = STATE.IDLE;
 let score = 0;
+let highScore = parseInt(localStorage.getItem('cosmic_catcher_highscore')) || 0;
 let animationId;
 let frames = 0;
+let lastTime = 0;
 let currentDifficulty = {
     speed: CONFIG.difficulty.initialSpeed,
     spawnRate: CONFIG.difficulty.spawnRateInitial,
@@ -182,28 +328,37 @@ const ui = {
     gameOver: document.getElementById('screen-gameover'),
     score: document.getElementById('score-display'),
     finalScore: document.getElementById('final-score'),
+    startHighscore: document.getElementById('start-highscore'),
+    gameoverHighscore: document.getElementById('gameover-highscore'),
     btnRestart: document.getElementById('btn-restart'),
     btnSound: document.getElementById('btn-sound'),
-    btnVibe: document.getElementById('btn-vibe') // Kept for UI but logic simplified
+    btnRestart: document.getElementById('btn-restart'),
+    btnSound: document.getElementById('btn-sound'),
+    btnVibe: document.getElementById('btn-vibe'),
+    btnHome: document.getElementById('btn-home'),
+    btnHomeOver: document.getElementById('btn-home-over'),
+    btnInstall: document.getElementById('btn-install')
 };
 
 // --- INITIALIZATION ---
 function init() {
     canvas = document.getElementById('game-canvas');
-    ctx = canvas.getContext('2d', { alpha: false }); // Optimize: No alpha on canvas buffer
+    ctx = canvas.getContext('2d', { alpha: false });
 
     Pool.init();
+    SpriteCache.init();
     resize();
     window.addEventListener('resize', resize);
 
-    // Bind Inputs
     setupInputs();
 
-    // Initial State
     gameState = STATE.IDLE;
     input.x = width / 2;
     player.x = width / 2;
-    loop();
+    updateUI();
+
+    // Start Loop
+    animationId = requestAnimationFrame(loop);
 }
 
 function resize() {
@@ -211,15 +366,11 @@ function resize() {
     height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
-
-    // Position player
     player.y = height - CONFIG.player.yOffset;
 }
 
 function setupInputs() {
     const handleStart = (e) => {
-        // Audio Context cannot be started/resumed without user gesture
-        // We do it here on the first interaction
         AudioSys.init();
         if (gameState !== STATE.PLAYING) {
             startGame();
@@ -241,11 +392,42 @@ function setupInputs() {
         }
     });
 
-    // Touch/Mouse Tracking
-    const moveHandler = (x) => {
-        if (gameState === STATE.PLAYING) {
-            input.x = x;
+    const handleHome = (e) => {
+        e.stopPropagation();
+        goHome();
+    };
+
+    ui.btnHome.addEventListener('click', handleHome);
+    ui.btnHomeOver.addEventListener('click', handleHome);
+
+    if (ui.btnInstall) {
+        ui.btnInstall.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.open(window.clickTag || "https://www.google.com", "_blank");
+        });
+    }
+
+    // Page Visibility API (Battery Saver & Pause Handler)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (gameState === STATE.PLAYING) {
+                gameState = STATE.PAUSED;
+                AudioSys.stopMusic();
+            }
+            if (animationId) cancelAnimationFrame(animationId);
+        } else {
+            lastTime = performance.now();
+            if (gameState === STATE.PAUSED) {
+                gameState = STATE.PLAYING;
+                if (soundEnabled) AudioSys.startMusic();
+            }
+            animationId = requestAnimationFrame(loop);
         }
+    });
+
+    const moveHandler = (x) => {
+        // Allow input tracking always, but clamp it
+        input.x = x;
     };
 
     window.addEventListener('mousemove', e => moveHandler(e.clientX));
@@ -258,7 +440,6 @@ function setupInputs() {
         if (gameState === STATE.PLAYING) moveHandler(e.touches[0].clientX);
     }, { passive: true });
 
-    // Keyboard Controls
     window.addEventListener('keydown', e => {
         if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
@@ -298,15 +479,38 @@ function startGame() {
 
 function gameOver() {
     gameState = STATE.GAMEOVER;
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('cosmic_catcher_highscore', highScore);
+    }
+
     if (soundEnabled) AudioSys.playGameOver();
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     AudioSys.stopMusic();
+    updateUI();
+
+    // Check for Ad Trigger
+    if (AdManager.checkTrigger()) {
+        setTimeout(() => {
+            AdManager.showInterstitial(() => {
+                AdManager.loadInterstitial();
+            });
+        }, 800);
+    }
+}
+
+function goHome() {
+    gameState = STATE.IDLE;
+    AudioSys.stopMusic();
+    Pool.reset();
     updateUI();
 }
 
 function updateUI() {
     ui.score.innerText = score;
     ui.finalScore.innerText = score;
+    ui.startHighscore.innerText = highScore;
+    ui.gameoverHighscore.innerText = highScore;
 
     if (gameState === STATE.IDLE) {
         ui.start.classList.remove('hidden');
@@ -320,60 +524,62 @@ function updateUI() {
 }
 
 // --- MAIN LOOP ---
-function loop() {
-    // Clear
+function loop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+
+    const rawDt = timestamp - lastTime;
+    lastTime = timestamp;
+
+    let dt = rawDt / 16.67;
+
+    // Safety caps
+    if (isNaN(dt) || dt < 0) dt = 0;
+    if (dt > 4) dt = 4;
+
     ctx.fillStyle = CONFIG.colors.bg;
     ctx.fillRect(0, 0, width, height);
 
     if (gameState === STATE.PLAYING) {
-        update();
+        update(dt);
+    } else {
+        frames += dt;
     }
 
-    // Draw everything (even in Game Over)
     draw();
-
     animationId = requestAnimationFrame(loop);
 }
 
-function update() {
-    frames++;
-    player.thrusterFrame += 0.5;
+function update(dt) {
+    frames += dt;
+    player.thrusterFrame += 0.5 * dt;
 
-    // 1. Spawner
-    if (frames % Math.floor(currentDifficulty.spawnRate) === 0) {
+    if (Math.random() < (1 / currentDifficulty.spawnRate) * dt) {
         spawnObject();
     }
 
-    // 2. Player Movement
-    // Handle Keyboard overrides
-    if (keys.left) input.x -= 15;
-    if (keys.right) input.x += 15;
+    if (keys.left) input.x -= 15 * dt;
+    if (keys.right) input.x += 15 * dt;
     input.x = Math.max(player.width / 2, Math.min(width - player.width / 2, input.x));
 
-    let targetX = input.x; // Already clamped
-    player.x += (targetX - player.x) * CONFIG.player.speedLerp;
+    let targetX = input.x;
+    const lerpFactor = 1 - Math.pow(1 - CONFIG.player.speedLerp, dt);
+    player.x += (targetX - player.x) * lerpFactor;
 
-    // 3. Object Updates
-    // Iterate main pool for active objects
     for (let i = 0; i < Pool.objects.length; i++) {
         let obj = Pool.objects[i];
         if (!obj.active) continue;
 
-        obj.y += obj.speed;
-        obj.angle = (obj.angle || 0) + (obj.rotationSpeed || 0);
+        obj.y += obj.speed * dt;
+        obj.angle = (obj.angle || 0) + (obj.rotationSpeed || 0) * dt;
 
-        // Cleanup
         if (obj.y - obj.radius > height) {
             obj.active = false;
             continue;
         }
 
-        // Collision: Circle vs Point(ish)
-        // Check simply if distance < radius + player_hitbox_size
         let dx = Math.abs(obj.x - player.x);
-        let dy = Math.abs(obj.y - (player.y + player.height / 2)); // Center of player
+        let dy = Math.abs(obj.y - (player.y + player.height / 2));
 
-        // Horizontal hit logic (simple box approx)
         if (dx < (player.width / 2 + obj.radius) && dy < (player.height / 2 + obj.radius)) {
             handleCollision(obj);
             obj.active = false;
@@ -381,14 +587,13 @@ function update() {
         }
     }
 
-    // 4. Particles
     for (let i = 0; i < Pool.particles.length; i++) {
         let p = Pool.particles[i];
         if (!p.active) continue;
 
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 0.05;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= 0.05 * dt;
         if (p.life <= 0) p.active = false;
     }
 }
@@ -416,7 +621,6 @@ function spawnObject() {
         obj.radius = typeData.radius;
         obj.score = typeData.score;
 
-        // Faster spin for stars/galaxies
         if (obj.type === 'Star') obj.rotationSpeed *= 2;
     }
 }
@@ -455,16 +659,9 @@ function createParticles(x, y, color) {
 
 // --- RENDERING ---
 function draw() {
-    // 1. Draw Player (Detailed Spaceship)
     drawPlayer();
-
-    // 2. Draw Objects
     drawObjects();
-
-    // 3. Draw Particles
     drawParticles();
-
-    // 4. Idle Screen Animation
     if (gameState === STATE.IDLE) drawIdleElements();
 }
 
@@ -489,10 +686,10 @@ function drawPlayer() {
     // Wings (Main Body)
     ctx.fillStyle = CONFIG.colors.playerBody;
     ctx.beginPath();
-    ctx.moveTo(0, 0); // Nose
-    ctx.lineTo(w / 2, h); // Right Wing Tip
-    ctx.lineTo(0, h - 10); // Center Engine Notch
-    ctx.lineTo(-w / 2, h); // Left Wing Tip
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w / 2, h);
+    ctx.lineTo(0, h - 10);
+    ctx.lineTo(-w / 2, h);
     ctx.closePath();
     ctx.fill();
 
@@ -509,7 +706,7 @@ function drawPlayer() {
     ctx.strokeStyle = CONFIG.colors.player;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(-w / 4, k = 30);
+    ctx.moveTo(-w / 4, 30); // FIXED k=30 error
     ctx.lineTo(-w / 2, h);
     ctx.moveTo(w / 4, 30);
     ctx.lineTo(w / 2, h);
@@ -523,156 +720,45 @@ function drawObjects() {
         let obj = Pool.objects[i];
         if (!obj.active) continue;
 
+        let sprite = SpriteCache.canvases[obj.type];
+
         ctx.save();
         ctx.translate(obj.x, obj.y);
         ctx.rotate(obj.angle || 0);
-        // Note: Drawing is now relative to (0,0) after translate
 
-        if (obj.isAsteroid) {
-            // Asteroid
-            ctx.shadowBlur = 0;
+        if (sprite) {
+            // Draw the cached sprite
+            const halfSize = sprite.width / 2;
+            ctx.drawImage(sprite, -halfSize, -halfSize);
+        } else {
+            // Fallback: Draw simple circle if sprite missing
             ctx.fillStyle = obj.color;
             ctx.beginPath();
             ctx.arc(0, 0, obj.radius, 0, Math.PI * 2);
             ctx.fill();
-
-            // Craters (Asteroid) - Static relative to asteroid body
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.beginPath();
-            ctx.arc(-obj.radius * 0.3, -obj.radius * 0.3, obj.radius * 0.4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(obj.radius * 0.4, obj.radius * 0.2, obj.radius * 0.2, 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            // Base Glow
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = obj.color;
-
-            if (obj.type === 'Planet') {
-                // Planet Body (Gradient)
-                // Use solid color for gradient base to avoid complex relative coords with gradient
-                ctx.fillStyle = obj.color;
-                ctx.beginPath();
-                ctx.arc(0, 0, obj.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Shadow for 3D effect
-                ctx.fillStyle = 'rgba(0,0,0,0.2)';
-                ctx.beginPath();
-                ctx.arc(0, 0, obj.radius, 0, Math.PI, false);
-                ctx.fill();
-
-                // Ring
-                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.ellipse(0, 0, obj.radius * 1.6, obj.radius * 0.5, -0.3, 0, Math.PI * 2);
-                ctx.stroke();
-
-            } else if (obj.type === 'Earth') {
-                // Ocean
-                ctx.fillStyle = obj.color; // Blue
-                ctx.beginPath();
-                ctx.arc(0, 0, obj.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Continents (Green blobs)
-                ctx.fillStyle = '#43A047';
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(0, 0, obj.radius, 0, Math.PI * 2);
-                ctx.clip(); // Clip to sphere
-
-                // Draw some random shapes for land
-                ctx.beginPath(); ctx.arc(-5, -5, 8, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(8, 2, 6, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(2, 9, 5, 0, Math.PI * 2); ctx.fill();
-
-                ctx.restore();
-
-                // Atmosphere Glow
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(0, 0, obj.radius + 1, 0, Math.PI * 2);
-                ctx.stroke();
-
-            } else if (obj.type === 'Moon') {
-                // Moon Body
-                ctx.fillStyle = obj.color;
-                ctx.beginPath();
-                ctx.arc(0, 0, obj.radius, 0, Math.PI * 2);
-                ctx.fill();
-                // Moon Craters
-                ctx.fillStyle = 'rgba(0,0,0,0.15)';
-                ctx.beginPath(); ctx.arc(-3, -3, 3, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(4, 2, 2, 0, Math.PI * 2); ctx.fill();
-
-            } else if (obj.type === 'Star') {
-                // Star Glow
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = '#ffe600';
-
-                // Star Body
-                ctx.fillStyle = '#fffbe6';
-                ctx.beginPath();
-                ctx.arc(0, 0, obj.radius * 0.6, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Spikes/Flare
-                ctx.fillStyle = obj.color;
-                ctx.beginPath();
-                for (let k = 0; k < 4; k++) {
-                    ctx.rotate(Math.PI / 2);
-                    ctx.moveTo(0, -obj.radius * 0.5);
-                    ctx.quadraticCurveTo(2, 0, 0, obj.radius * 1.8);
-                    ctx.quadraticCurveTo(-2, 0, 0, -obj.radius * 0.5);
-                }
-                ctx.fill();
-
-            } else if (obj.type === 'Galaxy') {
-                // Spiral Core
-                ctx.shadowBlur = 15;
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
-
-                // Spiral Arms
-                ctx.strokeStyle = obj.color;
-                ctx.lineWidth = 2;
-                ctx.shadowBlur = 5;
-
-                // Extra rotation for galaxy life
-                ctx.rotate(frames * 0.05);
-
-                for (let k = 0; k < 2; k++) {
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, obj.radius, obj.radius * 0.4, k * Math.PI, 0, Math.PI * 1.25);
-                    ctx.stroke();
-                }
-            }
         }
+
         ctx.restore();
     }
 }
 
 function drawParticles() {
+    if (Pool.particles.length === 0) return;
+
     for (let i = 0; i < Pool.particles.length; i++) {
         let p = Pool.particles[i];
         if (!p.active) continue;
 
         ctx.globalAlpha = p.life;
         ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, (p.life * 4), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
+        const size = p.life * 6;
+        ctx.fillRect(p.x - size / 2, p.y - size / 2, size, size);
     }
+    ctx.globalAlpha = 1.0;
 }
 
 function drawIdleElements() {
     ctx.fillStyle = '#ffffff';
-    // Use the frames counter to create a simple starfield effect
     for (let i = 0; i < 30; i++) {
         let speed = (i % 5) + 1;
         let y = (frames * speed + i * 50) % height;

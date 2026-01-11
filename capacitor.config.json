@@ -1,0 +1,6 @@
+{
+  "appId": "com.pavan.cosmiccatcher",
+  "appName": "Cosmic Catcher",
+  "webDir": "www",
+   "bundledWebRuntime": false
+}
